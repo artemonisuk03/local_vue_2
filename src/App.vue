@@ -1,23 +1,3 @@
-<!-- script -->
-
-<script setup>
-import { reactive, ref } from 'vue'
-defineOptions({
-  name: 'App',
-})
-
-const isModalLogIn = ref(false)
-const isModalSignUp = ref(false)
-
-const logIn = function () {
-  isModalLogIn.value = true
-}
-const SignUp = function () {
-  isModalSignUp.value = true
-  isModalLogIn.value = false
-}
-</script>
-
 <!-- template -->
 
 <template>
@@ -29,21 +9,22 @@ const SignUp = function () {
   >
     <div @click.stop v-if="isModalLogIn" class="modal_sign">
       <span class="sign_up_header">Вход</span>
-      <input type="text" class="text_field" placeholder="Почта" />
-      <input type="text" class="text_field" placeholder="Пароль" />
+      <input v-model="formData.email" type="email" placeholder="Почта" />
+      <input v-model="formData.password" type="password" placeholder="Пароль" />
       <div class="adv_options">
         <span>Забыли пароль?</span>
         <span @click="SignUp()">Зарегистрироваться</span>
       </div>
-      <button type="button" class="text_field">Войти</button>
+      <button @click="handleLogIn()" type="button">Войти</button>
     </div>
 
     <div @click.stop v-if="isModalSignUp" class="modal_sign">
       <span class="sign_up_header">Регистрация</span>
-      <input type="text" class="text_field" placeholder="Почта" />
-      <input type="text" class="text_field" placeholder="Пароль" />
-      <input type="text" class="text_field" placeholder="Повторение пароля" />
-      <button type="button" class="text_field">Зарегистрироваться</button>
+      <input type="email" v-model="formData.email" placeholder="Почта" />
+      <input type="password" v-model="formData.password" placeholder="Пароль" />
+      <input type="password_repeat" v-model="password_repeat" placeholder="Повторение пароля" />
+      <button @click="handleSignUp()" type="button">Зарегистрироваться</button>
+      <div>{{ error }}</div>
     </div>
   </div>
 
@@ -112,10 +93,10 @@ const SignUp = function () {
 
   <main>
     <div class="main_contents">
-      <div class="banners">
+      <section class="banners">
         <router-view></router-view>
-      </div>
-      <div class="leaderboard"></div>
+      </section>
+      <section class="leaderboard"></section>
     </div>
   </main>
 
@@ -123,6 +104,112 @@ const SignUp = function () {
     <div class="footer_contents"></div>
   </footer>
 </template>
+
+<!-- script -->
+
+<script setup>
+import { reactive, ref } from 'vue'
+import { useAuthStore } from '@/stores/auth_store.ts'
+defineOptions({
+  name: 'App',
+})
+
+const isModalLogIn = ref(false)
+const isModalSignUp = ref(false)
+
+const logIn = function () {
+  isModalLogIn.value = true
+}
+const SignUp = function () {
+  isModalSignUp.value = true
+  isModalLogIn.value = false
+}
+
+// нейрокод регистрация --------------------------------------
+
+const formData = reactive({
+  email: '',
+  password: '',
+})
+
+const authStore = useAuthStore()
+
+const password_repeat = ref('')
+const error = ref('')
+const successMessage = ref('')
+const loading = ref(false)
+
+const handleSignUp = async () => {
+  // Валидация
+  if (!formData.email || !formData.password) {
+    error.value = 'Заполните все поля'
+    return
+  }
+
+  if (formData.password !== password_repeat.value) {
+    error.value = 'Пароли не совпадают'
+    return
+  }
+
+  if (formData.password.length < 6) {
+    error.value = 'Пароль должен содержать минимум 6 символов'
+    return
+  }
+
+  // Очищаем сообщения
+  error.value = ''
+  successMessage.value = ''
+  loading.value = true
+
+  try {
+    const result = await authStore.register(formData.email, formData.password)
+
+    if (result.success) {
+      successMessage.value = 'Регистрация успешна! Перенаправление...'
+
+      // Перенаправляем на главную страницу через 2 секунды
+      // setTimeout(() => {
+      //   router.push('/dashboard')
+      // }, 2000)
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = 'Произошла ошибка при регистрации'
+  } finally {
+    loading.value = false
+  }
+}
+
+// нейрокод вход --------------------------------------
+
+const handleLogIn = async () => {
+  // Валидация
+  if (!formData.email || !formData.password) {
+    error.value = 'Заполните все поля'
+    return
+  }
+
+  error.value = ''
+  loading.value = true
+
+  try {
+    const result = await authStore.login(formData.email, formData.password)
+
+    if (result.success) {
+      // Перенаправление на запрошенную страницу или на главную
+      // const redirectPath = router.query.redirect || '/dashboard'
+      // router.push(redirectPath)
+    } else {
+      error.value = result.error
+    }
+  } catch (err) {
+    error.value = 'Произошла ошибка при входе'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
 
 <!-- style -->
 
@@ -308,9 +395,6 @@ footer {
   font-family: Nagel;
 }
 
-.modal_sign input:focus {
-}
-
 .adv_options {
   display: flex;
   flex-direction: row;
@@ -358,5 +442,8 @@ footer {
   .nav {
     width: 100%;
   }
+}
+
+@media screen and (max-width: 600) {
 }
 </style>
