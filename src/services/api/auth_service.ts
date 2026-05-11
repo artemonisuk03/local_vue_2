@@ -2,54 +2,57 @@ import axios from 'axios'
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:8000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+}) //вынести в отдельный файл можно
 
 class AuthService {
   // метод регистрации
   async register(email: string, password: string) {
+    //async значит что функция может выполняться параллельно, её не ждут
     try {
-      const response = await apiClient.post('/auth/register', {
+      const response = await apiClient.post('api/auth/register', {
+        //await наоборот значит что выполнение кода не продолжится пока не завершится выполнение функции
         email,
         password,
       })
 
       return response.data
+      //ошибки
     } catch (error: any) {
       if (error.response) {
-        if (error.response.status === 409) {
-          throw new Error('Пользователь с таким email уже существует')
+        switch (error.response.status) {
+          case 409:
+            throw new Error('Пользователь с таким email уже существует')
+          case 422:
+            throw new Error('Неверный формат логина или пароля')
         }
-        throw new Error(error.response.data.message || 'Ошибка регистрации')
       }
       throw new Error('Ошибка соединения с сервером')
     }
   }
 
-  // Добавляем метод входа
+  //Сделать интерфейсы для email, password, token
+
+  //метод входа
   async login(email: string, password: string) {
     try {
-      const response = await apiClient.post('/auth/login', {
+      const response = await apiClient.post('api/auth/login', {
         email,
         password,
       })
 
-      // Предполагаем, что ответ содержит access_token и refresh_token
       return response.data
     } catch (error: any) {
       if (error.response) {
-        if (error.response.status === 401) {
-          throw new Error('Неверный email или пароль')
+        switch (error.response.status) {
+          case 401:
+            throw new Error('Неверный логин или пароль')
+          case 422:
+            throw new Error('Неверный формат логина или пароля')
         }
-        throw new Error(error.response.data.message || 'Ошибка входа')
       }
       throw new Error('Ошибка соединения с сервером')
     }
   }
-
-  // Метод для выхода (опционально, можно вызвать на сервере)
   logout() {
     return Promise.resolve()
   }

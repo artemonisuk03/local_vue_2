@@ -13,11 +13,10 @@ const useAuthStore = defineStore('auth', {
 
   getters: {
     isAuthenticated: (state) => !!state.accessToken,
-    getAccessToken: (state) => state.accessToken,
-    getRefreshToken: (state) => state.refreshToken,
   },
 
   actions: {
+    //метод регистрации
     async register(email: string, password: string) {
       this.loading = true
       this.error = null
@@ -34,7 +33,7 @@ const useAuthStore = defineStore('auth', {
       }
     },
 
-    // Добавляем метод входа
+    // метод входа
     async login(email: string, password: string) {
       this.loading = true
       this.error = null
@@ -43,7 +42,7 @@ const useAuthStore = defineStore('auth', {
         const tokens = await authService.login(email, password)
         this.setTokens(tokens.access_token, tokens.refresh_token)
 
-        // Здесь можно получить данные пользователя
+        //нет ещё функции
         await this.fetchCurrentUser()
 
         return { success: true, tokens }
@@ -55,16 +54,18 @@ const useAuthStore = defineStore('auth', {
       }
     },
 
+    //добавление токенов в LocalStorage
     setTokens(accessToken: string, refreshToken: string) {
       this.accessToken = accessToken
       this.refreshToken = refreshToken
 
       localStorage.setItem('access_token', accessToken)
-      localStorage.setItem('refresh_token', refreshToken)
-      this.setAuthHeader(accessToken)
+      // localStorage.setItem('refresh_token', refreshToken)
+      this.setAuthorizationHeader(accessToken)
     },
 
-    setAuthHeader(token) {
+    //добавление токена во все запросы (хз зачем)
+    setAuthorizationHeader(token) {
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       } else {
@@ -72,23 +73,16 @@ const useAuthStore = defineStore('auth', {
       }
     },
 
-    // Метод для получения текущего пользователя
-    async fetchCurrentUser() {
-      try {
-        const response = await axios.get('/api/users/me')
-        this.user = response.data
-      } catch (error) {
-        console.error('Failed to fetch user:', error)
-      }
-    },
+    // получение пользователя (пока что нет)
+    async fetchCurrentUser() {},
 
+    //пока что локально на фронте
     async logout() {
       this.accessToken = null
-      this.refreshToken = null
-      this.user = null
+      // this.refreshToken = null //ничего не делает т.к refresh_token сразу в куки
+      // this.user = null //ничего не делает?...
       localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      this.setAuthHeader(null)
+      this.setAuthorizationHeader(null)
     },
 
     clearError() {

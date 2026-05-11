@@ -4,27 +4,59 @@
   <!-- hidden stuff -->
   <div
     v-if="isModalLogIn || isModalSignUp"
-    @click="((isModalLogIn = false), (isModalSignUp = false))"
+    @mousedown="closeModalAuth"
+    @keydown.esc="closeModalAuth"
     class="modal_shadow"
   >
-    <div @click.stop v-if="isModalLogIn" class="modal_sign">
-      <span class="sign_up_header">Вход</span>
-      <input v-model="formData.email" type="email" placeholder="Почта" />
-      <input v-model="formData.password" type="password" placeholder="Пароль" />
+    <form
+      @submit.prevent.stop="handleLogIn()"
+      @mousedown.stop
+      v-if="isModalLogIn"
+      class="modal_auth"
+    >
+      <span class="modal_auth_header">Вход</span>
+      <input v-model="formLogIn.email" type="email" placeholder="Почта" />
+      <input v-model="formLogIn.password" type="password" placeholder="Пароль" />
       <div class="adv_options">
         <span>Забыли пароль?</span>
-        <span @click="SignUp()">Зарегистрироваться</span>
+        <span @click="goToSignUp">Зарегистрироваться</span>
       </div>
-      <button @click="handleLogIn()" type="button">Войти</button>
-    </div>
+      <button type="submit">Войти</button>
+    </form>
 
-    <div @click.stop v-if="isModalSignUp" class="modal_sign">
-      <span class="sign_up_header">Регистрация</span>
-      <input type="email" v-model="formData.email" placeholder="Почта" />
-      <input type="password" v-model="formData.password" placeholder="Пароль" />
-      <input type="password_repeat" v-model="password_repeat" placeholder="Повторение пароля" />
-      <button @click="handleSignUp()" type="button">Зарегистрироваться</button>
-      <div>{{ error }}</div>
+    <form
+      @submit.prevent.stop="handleSignUp()"
+      @mousedown.stop
+      v-if="isModalSignUp"
+      class="modal_auth"
+    >
+      <span class="modal_auth_header">Регистрация</span>
+      <input type="email" v-model="formSignUp.email" placeholder="Почта" />
+      <input type="password" v-model="formSignUp.password" placeholder="Пароль" />
+      <input type="password" v-model="formSignUp.password_repeat" placeholder="Повторение пароля" />
+      <button type="submit">Зарегистрироваться</button>
+    </form>
+
+    <div class="modal_errors">
+      <div v-for="error in errors" class="modal_error">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="size-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
+          />
+        </svg>
+        <div>
+          {{ error }}
+        </div>
+      </div>
     </div>
   </div>
 
@@ -36,7 +68,7 @@
     <div class="header_upper">
       <div class="header_upper_contents">
         <div class="logo_main">
-          <img src=".\assets\img_mainlogo.png" width="60" />
+          <img src=".\assets\img_mainlogo.png" />
           <span>Молодёжка приморья</span>
         </div>
 
@@ -59,7 +91,7 @@
           </div>
           <div>
             <svg
-              @click="logIn()"
+              @click="isModalLogIn = true"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -80,8 +112,18 @@
 
     <!-- lower header -->
 
-    <div class="header_lower">
-      <nav>
+    <div v-if="isDesktop || isTablet" class="header_lower">
+      <nav class="nav_desktop">
+        <span href="">Новости</span>
+        <span href="">Мероприятия</span>
+        <span href="">Задания</span>
+      </nav>
+    </div>
+
+    <!-- mobile navigation -->
+
+    <div v-if="isMobile" class="mobile_footer">
+      <nav class="nav_mobile">
         <span href="">Новости</span>
         <span href="">Мероприятия</span>
         <span href="">Задания</span>
@@ -95,6 +137,12 @@
     <div class="main_contents">
       <section class="banners">
         <router-view></router-view>
+        <swiper :pagination="true" :modules="modules" class="swiper_carousel">
+          <swiper-slide> <img src=".\assets\images\beach.jpg" class="swiper_image" /></swiper-slide>
+          <swiper-slide
+            ><img src=".\assets\images\starfish.jpg" class="swiper_image"
+          /></swiper-slide>
+        </swiper>
       </section>
       <section class="leaderboard"></section>
     </div>
@@ -110,6 +158,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth_store.ts'
+import { useEventListener, useBreakpoints } from '@vueuse/core'
 defineOptions({
   name: 'App',
 })
@@ -117,96 +166,130 @@ defineOptions({
 const isModalLogIn = ref(false)
 const isModalSignUp = ref(false)
 
-const logIn = function () {
-  isModalLogIn.value = true
-}
-const SignUp = function () {
-  isModalSignUp.value = true
+const errors = ref([])
+// const error = ref('')
+const successMessage = ref('')
+
+const authStore = useAuthStore()
+
+const closeModalAuth = function () {
   isModalLogIn.value = false
+  isModalSignUp.value = false
+  errors.value = []
 }
+
+const goToSignUp = function () {
+  isModalLogIn.value = false
+  isModalSignUp.value = true
+  errors.value = []
+}
+
+// Swiper
+
+import { Swiper, SwiperSlide } from 'swiper/vue'
+
+// Import Swiper styles
+import 'swiper/css'
+
+import 'swiper/css/pagination'
+
+// import required modules
+import { Pagination } from 'swiper/modules'
+
+const modules = [Pagination]
+
+// breakpoints
+
+const breakpoints = useBreakpoints({
+  mobile: 0,
+  tablet: 540,
+  desktop: 1050,
+})
+
+const isDesktop = breakpoints.greater('desktop')
+const isTablet = breakpoints.between('tablet', 'desktop')
+const isMobile = breakpoints.smaller('tablet')
 
 // нейрокод регистрация --------------------------------------
 
-const formData = reactive({
+const formLogIn = reactive({
   email: '',
   password: '',
 })
 
-const authStore = useAuthStore()
+const formSignUp = reactive({
+  email: '',
+  password: '',
+  password_repeat: '',
+})
 
-const password_repeat = ref('')
-const error = ref('')
-const successMessage = ref('')
-const loading = ref(false)
+useEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModalAuth()
+  }
+})
 
 const handleSignUp = async () => {
+  errors.value = []
   // Валидация
-  if (!formData.email || !formData.password) {
-    error.value = 'Заполните все поля'
-    return
+  if (!formSignUp.email || !formSignUp.password) {
+    errors.value.push('Заполните все поля')
   }
 
-  if (formData.password !== password_repeat.value) {
-    error.value = 'Пароли не совпадают'
-    return
+  if (formSignUp.password !== formSignUp.password_repeat) {
+    errors.value.push('Пароли не совпадают')
   }
 
-  if (formData.password.length < 6) {
-    error.value = 'Пароль должен содержать минимум 6 символов'
+  if (formSignUp.password.length < 6) {
+    errors.value.push('Пароль должен содержать минимум 6 символов')
+  }
+
+  if (errors.value.length !== 0) {
     return
   }
 
   // Очищаем сообщения
-  error.value = ''
+  errors.value = []
   successMessage.value = ''
-  loading.value = true
 
   try {
-    const result = await authStore.register(formData.email, formData.password)
+    const result = await authStore.register(formSignUp.email, formSignUp.password)
 
     if (result.success) {
-      successMessage.value = 'Регистрация успешна! Перенаправление...'
-
-      // Перенаправляем на главную страницу через 2 секунды
-      // setTimeout(() => {
-      //   router.push('/dashboard')
-      // }, 2000)
+      closeModalAuth()
     } else {
-      error.value = result.error
+      errors.value.push(result.error)
     }
   } catch (err) {
-    error.value = 'Произошла ошибка при регистрации'
-  } finally {
-    loading.value = false
+    errors.value.push('Произошла ошибка при регистрации')
   }
 }
 
 // нейрокод вход --------------------------------------
 
 const handleLogIn = async () => {
+  errors.value = []
   // Валидация
-  if (!formData.email || !formData.password) {
-    error.value = 'Заполните все поля'
+  if (!formLogIn.email || !formLogIn.password) {
+    errors.value.push('Заполните все поля')
     return
   }
 
-  error.value = ''
-  loading.value = true
+  if (errors.value.length !== 0) {
+    return
+  }
 
+  errors.value = []
   try {
-    const result = await authStore.login(formData.email, formData.password)
+    const result = await authStore.login(formLogIn.email, formLogIn.password)
 
     if (result.success) {
-      // Перенаправление на запрошенную страницу или на главную
-      // const redirectPath = router.query.redirect || '/dashboard'
-      // router.push(redirectPath)
+      closeModalAuth()
     } else {
-      error.value = result.error
+      errors.value.push(result.error)
     }
   } catch (err) {
-    error.value = 'Произошла ошибка при входе'
-  } finally {
-    loading.value = false
+    errors.value.push('Произошла ошибка при входе')
   }
 }
 </script>
@@ -227,6 +310,7 @@ textarea {
 /* header upper */
 
 header {
+  z-index: 2;
   position: fixed;
   width: 100%;
 }
@@ -236,7 +320,7 @@ header {
   height: 70px;
   display: flex;
   justify-content: center;
-  z-index: 1;
+  z-index: 5;
   background-color: rgb(160, 125, 180);
 }
 
@@ -253,6 +337,9 @@ header {
   align-items: center;
   padding-inline: 10px;
   cursor: pointer;
+}
+.logo_main img {
+  height: 90%;
 }
 .logo_main span {
   color: white;
@@ -286,20 +373,20 @@ header {
 .header_lower {
   position: relative;
   height: 100px;
-  z-index: 0;
+  z-index: 4;
   display: flex;
   justify-content: center;
   background-color: rgb(255, 255, 255);
   box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
 }
 
-nav {
+.nav_desktop {
   display: flex;
   width: 1000px;
   align-items: center;
 }
 
-nav span {
+.nav_desktop span {
   height: 32px;
   font-size: 20px;
   margin-inline: 10px;
@@ -329,18 +416,35 @@ main {
   flex-direction: column;
 }
 
+/* swiper carousel */
+
 .banners {
   height: 600px;
-  background-color: aliceblue;
+  /* background-color: aliceblue; */
   margin-block: 30px;
   box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
+  border-radius: 16px;
+}
+
+.swiper_carousel {
+  height: 100%;
+  width: 100%;
+  border-radius: 16px;
+  z-index: 0;
+}
+
+.swiper_image {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
 }
 
 .leaderboard {
-  height: 400px;
-  background-color: aliceblue;
+  height: 500px;
+  background-color: white;
   margin-block: 30px;
   box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
+  border-radius: 16px;
 }
 
 /* footer */
@@ -352,6 +456,38 @@ footer {
   box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
 }
 
+/* mobile footer */
+
+.mobile_footer {
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  height: 100px;
+  z-index: 4;
+  display: flex;
+  justify-content: center;
+  background-color: rgb(255, 255, 255);
+  box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
+}
+
+.nav_mobile {
+  display: flex;
+  justify-content: space-evenly;
+  width: 1000px;
+  align-items: center;
+}
+
+.nav_mobile span {
+  height: 32px;
+  font-size: 20px;
+  margin-inline: 10px;
+  align-content: center;
+  font-family: Nagel;
+  cursor: pointer;
+  color: rgb(65, 65, 65);
+  border-bottom: solid thin rgb(65, 65, 65);
+}
+
 /* modal window */
 
 .modal_shadow {
@@ -361,11 +497,11 @@ footer {
   position: fixed;
   background-color: rgba(0, 0, 0, 0.4);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
 }
 
-.modal_sign {
+.modal_auth {
   position: relative;
   width: 350px;
   display: flex;
@@ -374,18 +510,17 @@ footer {
   padding: 16px;
   border-radius: 16px;
   font-size: 16px;
-  margin-top: 16px;
-  bottom: 100px;
+  margin-top: 200px;
   font-family: Nagel;
 }
 
-.sign_up_header {
+.modal_auth_header {
   font-size: 1.5rem;
   padding: 16px;
   align-self: center;
 }
 
-.modal_sign input {
+.modal_auth input {
   box-sizing: border-box;
   border: thin solid black;
   font-size: 16px;
@@ -406,7 +541,7 @@ footer {
   cursor: pointer;
 }
 
-.modal_sign button {
+.modal_auth button {
   background-color: white;
   border: thin solid black;
   font-size: 20px;
@@ -420,13 +555,43 @@ footer {
   font-family: Nagel;
 }
 
-.modal_sign button:hover {
-  background-color: rgb(113, 42, 206);
-  border: thin solid rgb(113, 42, 206);
+.modal_auth button:hover {
+  background-color: rgb(160, 125, 180);
+  border: thin solid rgb(160, 125, 180);
   color: white;
 }
 
-@media screen and (max-width: 1000px) {
+/* modal errors */
+
+.modal_errors {
+  margin-top: 100px;
+  max-width: 80%;
+}
+
+.modal_error {
+  height: 24px;
+  background-color: rgb(204, 63, 75);
+  font-size: 20px;
+  color: white;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-family: Nagel;
+  padding-block: 12px;
+  border-radius: 24px;
+  padding-inline: 12px;
+  margin-block: 12px;
+}
+
+.modal_error svg {
+  height: 100%;
+}
+
+.modal_error div {
+  margin-inline: 4px;
+}
+
+@media screen and (max-width: 1050px) and (min-width: 540px) {
   main {
     padding-inline: 32px;
   }
@@ -444,6 +609,14 @@ footer {
   }
 }
 
-@media screen and (max-width: 600) {
+@media screen and (max-width: 540px) {
+  main {
+    padding-inline: 32px;
+  }
+
+  .main_contents {
+    width: 100%;
+    padding-top: 70px;
+  }
 }
 </style>
