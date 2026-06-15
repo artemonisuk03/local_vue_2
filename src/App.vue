@@ -13,9 +13,10 @@
       @mousedown.stop
       v-if="isModalLogIn"
       class="modal_auth"
+      novalidate
     >
       <span class="modal_auth_header">Вход</span>
-      <input v-model="formLogIn.email" type="email" placeholder="Почта" />
+      <input @input.prevent v-model="formLogIn.email" type="email" placeholder="Почта" />
       <input v-model="formLogIn.password" type="password" placeholder="Пароль" />
       <div class="adv_options">
         <span>Забыли пароль?</span>
@@ -29,9 +30,10 @@
       @mousedown.stop
       v-if="isModalSignUp"
       class="modal_auth"
+      novalidate
     >
       <span class="modal_auth_header">Регистрация</span>
-      <input type="email" v-model="formSignUp.email" placeholder="Почта" />
+      <input @input.prevent type="email" v-model="formSignUp.email" placeholder="Почта" />
       <input type="password" v-model="formSignUp.password" placeholder="Пароль" />
       <input type="password" v-model="formSignUp.password_repeat" placeholder="Повторение пароля" />
       <button type="submit">Зарегистрироваться</button>
@@ -58,6 +60,12 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div v-if="showMessageAuth" class="modal_success">
+    <Transition name="fade">
+      <div class="success_message">Вход успешен, добро пожаловать</div>
+    </Transition>
   </div>
 
   <!-- header -->
@@ -91,7 +99,8 @@
           </div>
           <div>
             <svg
-              @click="isModalLogIn = true"
+              @click="toggleWindow"
+              ref="profileWindowRef"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -106,8 +115,26 @@
               />
             </svg>
           </div>
+          <span v-if="isAuthenticated" class="font-[Nagel] text-white text-[20px] text-right mr-4"
+            >Добро пожаловать, {{ userEmail }}</span
+          >
+          <span
+            v-else-if="!isAuthenticated"
+            class="font-[Nagel] text-white text-[20px] text-right mr-4"
+            >Добро пожаловать, Гость. Войдите.</span
+          >
         </div>
       </div>
+    </div>
+
+    <div v-if="isOpen" class="profile_actions" :style="profileWindowStyle">
+      <button v-if="isAuthenticated" type="button">Профиль</button>
+      <button v-if="isAuthenticated" @click="handleLogout" type="button">Выход</button>
+      <!-- Logged in -->
+      <button v-if="!isAuthenticated" @click="isModalLogIn = true" type="button">Войти</button>
+      <button v-if="!isAuthenticated" @click="isModalSignUp = true" type="button">
+        Регистрация
+      </button>
     </div>
 
     <!-- lower header -->
@@ -159,42 +186,30 @@
 import { reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth_store.ts'
 import { useEventListener, useBreakpoints } from '@vueuse/core'
+import { computed } from 'vue'
+
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import 'swiper/css'
+import 'swiper/css/pagination'
+import { Pagination } from 'swiper/modules'
+
 defineOptions({
   name: 'App',
 })
 
 const isModalLogIn = ref(false)
 const isModalSignUp = ref(false)
+const messageAuthFadeTimeout = ref(null)
 
 const errors = ref([])
 // const error = ref('')
-const successMessage = ref('')
+const showMessageAuth = ref('')
 
 const authStore = useAuthStore()
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const userEmail = computed(() => authStore.userEmail)
 
-const closeModalAuth = function () {
-  isModalLogIn.value = false
-  isModalSignUp.value = false
-  errors.value = []
-}
-
-const goToSignUp = function () {
-  isModalLogIn.value = false
-  isModalSignUp.value = true
-  errors.value = []
-}
-
-// Swiper
-
-import { Swiper, SwiperSlide } from 'swiper/vue'
-
-// Import Swiper styles
-import 'swiper/css'
-
-import 'swiper/css/pagination'
-
-// import required modules
-import { Pagination } from 'swiper/modules'
+// swiper
 
 const modules = [Pagination]
 
@@ -210,7 +225,31 @@ const isDesktop = breakpoints.greater('desktop')
 const isTablet = breakpoints.between('tablet', 'desktop')
 const isMobile = breakpoints.smaller('tablet')
 
-// нейрокод регистрация --------------------------------------
+// profile actions window
+
+const profileWindowRef = ref(null)
+const isOpen = ref(false)
+const buttonCoords = ref({ top: 0, left: 0 })
+
+const toggleWindow = () => {
+  const rect = profileWindowRef.value.getBoundingClientRect()
+
+  buttonCoords.value = {
+    top: rect.bottom + window.scrollY + 5, // низ кнопки + прокрутка
+    left: rect.left + window.scrollX - 4, // левый край + прокрутка
+  }
+
+  isOpen.value = !isOpen.value
+  console.log(isAuthenticated)
+}
+
+const profileWindowStyle = computed(() => ({
+  position: 'fixed',
+  top: `${buttonCoords.value.top}px`,
+  left: `${buttonCoords.value.left}px`,
+}))
+
+// modal window
 
 const formLogIn = reactive({
   email: '',
@@ -229,28 +268,77 @@ useEventListener('keydown', (e) => {
   }
 })
 
-const handleSignUp = async () => {
+const closeModalAuth = function () {
+  isModalLogIn.value = false
+  isModalSignUp.value = false
   errors.value = []
-  // Валидация
-  if (!formSignUp.email || !formSignUp.password) {
-    errors.value.push('Заполните все поля')
+}
+
+const goToSignUp = function () {
+  isModalLogIn.value = false
+  isModalSignUp.value = true
+  errors.value = []
+}
+
+const showSuccessMessage = () => {
+  if (messageAuthFadeTimeout.value) {
+    clearTimeout(messageAuthFadeTimeout.value)
   }
 
-  if (formSignUp.password !== formSignUp.password_repeat) {
+  showMessageAuth.value = true
+
+  messageAuthFadeTimeout.value = setTimeout(() => {
+    showMessageAuth.value = false
+    messageAuthFadeTimeout.value = null
+  }, 3000)
+}
+
+const isPasswordValid = function (str) {
+  const specialCheck = /[^a-zA-Z0-9\s]/.test(str)
+  const letterCheck = /[a-zA-Z]/.test(str)
+  const numberCheck = /[0-9]/.test(str)
+  if (!!specialCheck && !!letterCheck && !!numberCheck) {
+    return true
+  }
+  return false
+}
+
+const isEmailValid = function (str) {
+  const emailCheck = /[a-zA-Z0-9]+@[a-zA-Z0-9]+\.[a-zA-Z0-9]{2,}$/.test(str)
+  if (!!emailCheck) {
+    return true
+  }
+  return false
+}
+
+const handleSignUp = async () => {
+  errors.value = []
+  // валидация
+  if (!formSignUp.email || !formSignUp.password || !formSignUp.password_repeat) {
+    errors.value.push('Заполните все поля')
+  } else if (formSignUp.password !== formSignUp.password_repeat) {
     errors.value.push('Пароли не совпадают')
   }
 
-  if (formSignUp.password.length < 6) {
-    errors.value.push('Пароль должен содержать минимум 6 символов')
+  if (!isEmailValid(formSignUp.email)) {
+    errors.value.push('Неверный формат email.')
+  }
+
+  if (formSignUp.password.length < 12) {
+    errors.value.push('Пароль должен содержать минимум 12 символов.')
+  } else if (!isPasswordValid(formSignUp.password)) {
+    errors.value.push('Пароль включать цифры, заглавные и строчные буквы и специальные символы.')
+  }
+
+  if (isAuthenticated.value) {
+    errors.value.push('Вы уже вошли. Сначала выйдите.')
   }
 
   if (errors.value.length !== 0) {
     return
   }
 
-  // Очищаем сообщения
   errors.value = []
-  successMessage.value = ''
 
   try {
     const result = await authStore.register(formSignUp.email, formSignUp.password)
@@ -265,14 +353,26 @@ const handleSignUp = async () => {
   }
 }
 
-// нейрокод вход --------------------------------------
-
 const handleLogIn = async () => {
   errors.value = []
-  // Валидация
+  // валидация
   if (!formLogIn.email || !formLogIn.password) {
     errors.value.push('Заполните все поля')
     return
+  }
+
+  if (!isEmailValid(formLogIn.email)) {
+    errors.value.push('Неверный формат email.')
+  }
+
+  if (formLogIn.password.length < 12) {
+    errors.value.push('Пароль должен содержать минимум 12 символов.')
+  } else if (!isPasswordValid(formLogIn.password)) {
+    errors.value.push('Пароль включать цифры, заглавные и строчные буквы и специальные символы.')
+  }
+
+  if (isAuthenticated.value) {
+    errors.value.push('Вы уже вошли. Сначала выйдите.')
   }
 
   if (errors.value.length !== 0) {
@@ -285,12 +385,18 @@ const handleLogIn = async () => {
 
     if (result.success) {
       closeModalAuth()
+      showSuccessMessage()
+      console.log(isAuthenticated)
     } else {
       errors.value.push(result.error)
     }
   } catch (err) {
     errors.value.push('Произошла ошибка при входе')
   }
+}
+
+const handleLogout = async () => {
+  const result = await authStore.logout()
 }
 </script>
 
@@ -307,6 +413,32 @@ textarea {
   outline: none;
 }
 
+/*  */
+
+.profile_actions {
+  position: fixed;
+  width: 150px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  background-color: white;
+  box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
+}
+
+.profile_actions button {
+  width: 100%;
+  font-family: Nagel;
+  padding: 32px;
+  background-color: white;
+  transition: 0.2s background-color;
+  cursor: pointer;
+}
+
+.profile_actions button:hover {
+  background-color: rgb(160, 125, 180);
+}
+
 /* header upper */
 
 header {
@@ -320,7 +452,7 @@ header {
   height: 70px;
   display: flex;
   justify-content: center;
-  z-index: 5;
+  z-index: 6;
   background-color: rgb(160, 125, 180);
 }
 
@@ -355,10 +487,12 @@ header {
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  padding: 10px;
+  /* padding: 10px; */
 }
 .account_main div {
-  width: 100%;
+  /* width: 100%; */
+  padding-block: 10px;
+  padding-inline: 4px;
   height: 100%;
 }
 .account_main div svg {
@@ -591,6 +725,31 @@ footer {
   margin-inline: 4px;
 }
 
+.modal_success {
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.success_message {
+  margin-top: 600px;
+  height: 24px;
+  background-color: rgb(126, 204, 63);
+  font-size: 20px;
+  color: white;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-family: Nagel;
+  padding-block: 12px;
+  border-radius: 24px;
+  padding-inline: 12px;
+}
+
 @media screen and (max-width: 1050px) and (min-width: 540px) {
   main {
     padding-inline: 32px;
@@ -617,6 +776,14 @@ footer {
   .main_contents {
     width: 100%;
     padding-top: 70px;
+  }
+
+  .header_upper {
+    height: 80px;
+  }
+
+  .logo_main img {
+    height: 80%;
   }
 }
 </style>

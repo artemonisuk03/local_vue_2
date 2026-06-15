@@ -2,21 +2,19 @@ import axios from 'axios'
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:8000',
-}) //вынести в отдельный файл можно
+  withCredentials: true,
+})
 
 class AuthService {
   // метод регистрации
   async register(email: string, password: string) {
-    //async значит что функция может выполняться параллельно, её не ждут
     try {
       const response = await apiClient.post('api/auth/register', {
-        //await наоборот значит что выполнение кода не продолжится пока не завершится выполнение функции
         email,
         password,
       })
 
       return response.data
-      //ошибки
     } catch (error: any) {
       if (error.response) {
         switch (error.response.status) {
@@ -29,8 +27,6 @@ class AuthService {
       throw new Error('Ошибка соединения с сервером')
     }
   }
-
-  //Сделать интерфейсы для email, password, token
 
   //метод входа
   async login(email: string, password: string) {
@@ -53,8 +49,27 @@ class AuthService {
       throw new Error('Ошибка соединения с сервером')
     }
   }
-  logout() {
-    return Promise.resolve()
+
+  async refresh() {
+    const response = await apiClient.post('/api/auth/refresh')
+    return response.data
+  }
+
+  async getEmail() {
+    try {
+      const token = localStorage.getItem('access_token')
+      const response = await apiClient.get('/api/auth/email', {
+        params: {
+          access_token: token,
+        },
+      })
+      return response.data
+    } catch (error: any) {
+      if (error.response) {
+        throw new Error(error.response.data)
+      }
+      throw new Error('Ошибка соединения с сервером')
+    }
   }
 }
 

@@ -9,3 +9,5 @@ body {
   src: url('/fonts/Nagel_Regular.otf') format('opentype');
   font-display: swap;
 }
+
+@import "tailwindcss";

@@ -6,7 +6,7 @@ const useAuthStore = defineStore('auth', {
   state: () => ({
     accessToken: localStorage.getItem('access_token') || null,
     refreshToken: localStorage.getItem('refresh_token') || null,
-    user: null,
+    userEmail: null,
     loading: false,
     error: null,
   }),
@@ -23,7 +23,7 @@ const useAuthStore = defineStore('auth', {
 
       try {
         const tokens = await authService.register(email, password)
-        this.setTokens(tokens.access_token, tokens.refresh_token)
+        this.setAccessToken(tokens.access_token, tokens.refresh_token)
         return { success: true, tokens }
       } catch (error: any) {
         this.error = error.message
@@ -40,10 +40,9 @@ const useAuthStore = defineStore('auth', {
 
       try {
         const tokens = await authService.login(email, password)
-        this.setTokens(tokens.access_token, tokens.refresh_token)
+        this.setAccessToken(tokens.access_token, tokens.refresh_token)
 
-        //нет ещё функции
-        await this.fetchCurrentUser()
+        await this.fetchUserEmail()
 
         return { success: true, tokens }
       } catch (error: any) {
@@ -55,16 +54,14 @@ const useAuthStore = defineStore('auth', {
     },
 
     //добавление токенов в LocalStorage
-    setTokens(accessToken: string, refreshToken: string) {
+    setAccessToken(accessToken: string, refreshToken: string) {
       this.accessToken = accessToken
       this.refreshToken = refreshToken
 
       localStorage.setItem('access_token', accessToken)
-      // localStorage.setItem('refresh_token', refreshToken)
       this.setAuthorizationHeader(accessToken)
     },
 
-    //добавление токена во все запросы (хз зачем)
     setAuthorizationHeader(token) {
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -73,20 +70,20 @@ const useAuthStore = defineStore('auth', {
       }
     },
 
-    // получение пользователя (пока что нет)
-    async fetchCurrentUser() {},
-
-    //пока что локально на фронте
-    async logout() {
-      this.accessToken = null
-      // this.refreshToken = null //ничего не делает т.к refresh_token сразу в куки
-      // this.user = null //ничего не делает?...
-      localStorage.removeItem('access_token')
-      this.setAuthorizationHeader(null)
+    async fetchUserEmail(token) {
+      try {
+        const data = await authService.getEmail(token)
+        this.userEmail = data.email
+      } catch (error) {
+        console.error('Failed to fetch email:', error)
+      }
     },
 
-    clearError() {
-      this.error = null
+    async logout() {
+      this.accessToken = null
+      localStorage.removeItem('access_token')
+      this.userEmail = null
+      this.setAuthorizationHeader(null)
     },
   },
 })
