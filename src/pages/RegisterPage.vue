@@ -1,16 +1,136 @@
 <template>
-  <form @submit.prevent="handleSignUp" class="auth_form" novalidate>
+  <form
+    @submit.prevent="handleSignUp"
+    class="auth_form"
+    :class="{ shake: isShaking }"
+    @animationend="isShaking = false"
+    novalidate
+  >
     <span class="auth_form_header">Регистрация</span>
-    <input @input.prevent type="email" v-model="form.email" placeholder="Почта" />
-    <input type="password" v-model="form.password" placeholder="Пароль" />
-    <input type="password" v-model="form.password_repeat" placeholder="Повторение пароля" />
-    <button type="submit">Зарегистрироваться</button>
+
+    <!-- email -->
+
+    <div class="input_wrapper" :class="{ field_error: fieldErrors.email }">
+      <input @input.prevent type="email" v-model="form.email" placeholder="Почта" />
+      <transition name="fade">
+        <span v-if="fieldErrors.email" class="inline_error">{{ fieldErrors.email }}</span>
+      </transition>
+    </div>
+
+    <!-- password -->
+
+    <div class="input_wrapper" :class="{ field_error: fieldErrors.password }">
+      <input
+        :type="showPassword ? 'text' : 'password'"
+        v-model="form.password"
+        placeholder="Пароль"
+      />
+      <transition name="fade">
+        <span v-if="fieldErrors.password" class="inline_error">{{ fieldErrors.password }}</span>
+      </transition>
+      <button type="button" class="eye_btn" @click="showPassword = !showPassword" tabindex="-1">
+        <svg
+          v-if="!showPassword"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+          />
+        </svg>
+        <svg
+          v-else
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- repeat  -->
+
+    <div class="input_wrapper" :class="{ field_error: fieldErrors.password_repeat }">
+      <input
+        :type="showPasswordRepeat ? 'text' : 'password'"
+        v-model="form.password_repeat"
+        placeholder="Повторение пароля"
+      />
+      <transition name="fade">
+        <span v-if="fieldErrors.password_repeat" class="inline_error">{{
+          fieldErrors.password_repeat
+        }}</span>
+      </transition>
+      <button
+        type="button"
+        class="eye_btn"
+        @click="showPasswordRepeat = !showPasswordRepeat"
+        tabindex="-1"
+      >
+        <svg
+          v-if="!showPasswordRepeat"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+          />
+        </svg>
+        <svg
+          v-else
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <button type="submit" class="primary_btn">Зарегистрироваться</button>
     <button type="button" @click="router.push('/login')" class="secondary_btn">
       Уже есть аккаунт?
     </button>
+  </form>
 
-    <div class="errors">
-      <div v-for="error in errors" class="error">
+  <!-- misc errors  -->
+
+  <div class="general_error_area">
+    <transition name="fade">
+      <div v-if="fieldErrors.general" class="general_error">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -24,14 +144,14 @@
             d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
           />
         </svg>
-        <div>{{ error }}</div>
+        {{ fieldErrors.general }}
       </div>
-    </div>
-  </form>
+    </transition>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth_store.ts'
 
@@ -41,45 +161,86 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({ email: '', password: '', password_repeat: '' })
-const errors = ref<string[]>([])
+const fieldErrors = reactive({ email: '', password: '', password_repeat: '', general: '' })
+const showPassword = ref(false)
+const showPasswordRepeat = ref(false)
+const isShaking = ref(false)
 
-const isEmailValid = (str: string) => /[a-zA-Z0-9]+@[a-zA-Z0-9]+\.[a-zA-Z0-9]{2,}$/.test(str)
-const isPasswordValid = (str: string) =>
-  /[^a-zA-Z0-9\s]/.test(str) && /[a-zA-Z]/.test(str) && /[0-9]/.test(str)
+function isEmailValid(str: string): boolean {
+  const pattern = /[a-zA-Z0-9]+@[a-zA-Z0-9]+\.[a-zA-Z0-9]{2,}$/
+  return pattern.test(str)
+}
 
-const handleSignUp = async () => {
-  errors.value = []
+function isPasswordValid(str: string): boolean {
+  const hasSpecial = /[^a-zA-Z0-9\s]/.test(str)
+  const hasLetter = /[a-zA-Z]/.test(str)
+  const hasDigit = /[0-9]/.test(str)
+  return hasSpecial && hasLetter && hasDigit
+}
+
+async function triggerShake(): Promise<void> {
+  isShaking.value = false
+  await nextTick()
+  isShaking.value = true
+}
+
+async function handleSignUp(): Promise<void> {
+  fieldErrors.email = ''
+  fieldErrors.password = ''
+  fieldErrors.password_repeat = ''
+  fieldErrors.general = ''
 
   if (!form.email || !form.password || !form.password_repeat) {
-    errors.value.push('Заполните все поля')
-  } else if (form.password !== form.password_repeat) {
-    errors.value.push('Пароли не совпадают')
+    fieldErrors.general = 'Заполните все поля'
+    triggerShake()
+    return
   }
-  if (!isEmailValid(form.email)) errors.value.push('Неверный формат email.')
+
+  if (!isEmailValid(form.email)) {
+    fieldErrors.email = 'Неверный email'
+  }
+
   if (form.password.length < 12) {
-    errors.value.push('Пароль должен содержать минимум 12 символов.')
+    fieldErrors.password = 'Мин. 12 символов'
   } else if (!isPasswordValid(form.password)) {
-    errors.value.push('Пароль должен включать цифры, буквы и специальные символы.')
+    fieldErrors.password = 'Нужны цифры и символы'
   }
-  if (authStore.isAuthenticated) errors.value.push('Вы уже вошли. Сначала выйдите.')
-  if (errors.value.length !== 0) return
+
+  if (form.password !== form.password_repeat) {
+    fieldErrors.password_repeat = 'Не совпадают'
+  }
+
+  if (authStore.isAuthenticated) {
+    fieldErrors.general = 'Вы уже вошли. Сначала выйдите.'
+  }
+
+  const hasErrors =
+    fieldErrors.email || fieldErrors.password || fieldErrors.password_repeat || fieldErrors.general
+
+  if (hasErrors) {
+    triggerShake()
+    return
+  }
 
   try {
     const result = await authStore.register(form.email, form.password)
     if (result.success) {
-      router.push('/login')
+      await authStore.fetchUserEmail()
+      router.push('/')
     } else {
-      errors.value.push(result.error)
+      fieldErrors.general = result.error
+      triggerShake()
     }
   } catch {
-    errors.value.push('Произошла ошибка при регистрации')
+    fieldErrors.general = 'Произошла ошибка при регистрации'
+    triggerShake()
   }
 }
 </script>
 
 <style scoped>
-button,
-input {
+input,
+button {
   appearance: none;
   background: none;
   border: none;
@@ -87,13 +248,14 @@ input {
 }
 
 .auth_form {
-  width: 350px;
+  width: 400px;
   display: flex;
   flex-direction: column;
   background-color: white;
-  padding: 16px;
+  padding: 24px;
+  margin-top: 80px;
+  margin-bottom: 40px;
   border-radius: 16px;
-  font-size: 16px;
   font-family: Nagel;
   box-shadow: 0px 0px 30px 0px rgb(211, 211, 211);
 }
@@ -104,22 +266,69 @@ input {
   align-self: center;
 }
 
-.auth_form input {
-  box-sizing: border-box;
-  border: thin solid black;
-  font-size: 16px;
-  margin: 0.5rem;
-  padding: 16px;
+/* fields */
+
+.input_wrapper {
+  display: flex;
+  align-items: center;
+  border: thin solid rgb(180, 180, 180);
   border-radius: 16px;
+  margin-block: 0.4rem;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.input_wrapper.field_error {
+  border-color: rgb(204, 63, 75);
+}
+
+.input_wrapper input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+  font-size: 16px;
   font-family: Nagel;
 }
 
-.auth_form button {
+.inline_error {
+  flex-shrink: 0;
+  padding-right: 8px;
+  font-size: 11px;
+  color: rgb(204, 63, 75);
+  font-family: Nagel;
+  max-width: 96px;
+  line-height: 1.3;
+  text-align: right;
+}
+
+.eye_btn {
+  flex-shrink: 0;
+  align-self: stretch;
+  padding-inline: 12px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: rgb(170, 170, 170);
+  transition: color 0.15s;
+}
+
+.eye_btn:hover {
+  color: rgb(160, 125, 180);
+}
+
+.eye_btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* buttons */
+
+.primary_btn {
   background-color: white;
   border: thin solid black;
   font-size: 20px;
-  margin: 0.5rem;
-  padding: 8px;
+  margin-block: 0.4rem;
+  padding: 10px;
   border-radius: 16px;
   transition:
     0.2s background-color,
@@ -129,51 +338,97 @@ input {
   cursor: pointer;
 }
 
-.auth_form button:hover {
+.primary_btn:hover {
   background-color: rgb(160, 125, 180);
   border: thin solid rgb(160, 125, 180);
   color: white;
 }
 
 .secondary_btn {
-  border-color: transparent !important;
+  border-color: transparent;
   color: rgb(130, 130, 130);
-  font-size: 14px !important;
+  font-size: 14px;
+  margin-block: 0.2rem;
+  padding: 6px;
+  border-radius: 16px;
+  font-family: Nagel;
+  cursor: pointer;
+  transition: color 0.2s;
 }
 
 .secondary_btn:hover {
-  background-color: transparent !important;
-  border-color: transparent !important;
-  color: rgb(160, 125, 180) !important;
+  color: rgb(160, 125, 180);
 }
 
-.errors {
-  display: flex;
-  flex-direction: column;
-  margin-top: 8px;
-}
+/* general error */
 
-.error {
-  height: 24px;
-  background-color: rgb(204, 63, 75);
-  font-size: 16px;
-  color: white;
+.general_error_area {
+  min-height: 46px;
   display: flex;
-  flex-direction: row;
   align-items: center;
-  font-family: Nagel;
-  padding-block: 12px;
-  border-radius: 24px;
-  padding-inline: 12px;
-  margin-block: 4px;
+  margin-top: 4px;
 }
 
-.error svg {
-  height: 100%;
+.general_error {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgb(204, 63, 75);
+  color: white;
+  font-size: 14px;
+  font-family: Nagel;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.general_error svg {
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 
-.error div {
-  margin-inline: 4px;
+/* transitions */
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* shake animation */
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@media screen and (max-width: 440px) {
+  .auth_form {
+    width: calc(100vw - 32px);
+    margin-top: 40px;
+  }
 }
 </style>

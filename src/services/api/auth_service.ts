@@ -6,7 +6,7 @@ const apiClient = axios.create({
 })
 
 class AuthService {
-  // метод регистрации
+  // register
   async register(email: string, password: string) {
     try {
       const response = await apiClient.post('api/auth/register', {
@@ -28,7 +28,7 @@ class AuthService {
     }
   }
 
-  //метод входа
+  // login
   async login(email: string, password: string) {
     try {
       const response = await apiClient.post('api/auth/login', {

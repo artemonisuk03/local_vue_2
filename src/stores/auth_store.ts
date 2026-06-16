@@ -6,7 +6,7 @@ const useAuthStore = defineStore('auth', {
   state: () => ({
     accessToken: localStorage.getItem('access_token') || null,
     refreshToken: localStorage.getItem('refresh_token') || null,
-    userEmail: null,
+    userEmail: localStorage.getItem('user_email') || null,
     loading: false,
     error: null,
   }),
@@ -16,7 +16,7 @@ const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    //метод регистрации
+    // register
     async register(email: string, password: string) {
       this.loading = true
       this.error = null
@@ -33,7 +33,7 @@ const useAuthStore = defineStore('auth', {
       }
     },
 
-    // метод входа
+    // login
     async login(email: string, password: string) {
       this.loading = true
       this.error = null
@@ -53,7 +53,7 @@ const useAuthStore = defineStore('auth', {
       }
     },
 
-    //добавление токенов в LocalStorage
+    // save tokens to localStorage
     setAccessToken(accessToken: string, refreshToken: string) {
       this.accessToken = accessToken
       this.refreshToken = refreshToken
@@ -74,6 +74,7 @@ const useAuthStore = defineStore('auth', {
       try {
         const data = await authService.getEmail()
         this.userEmail = data.email
+        localStorage.setItem('user_email', data.email)
       } catch (error) {
         console.error('Failed to fetch email:', error)
       }
@@ -81,8 +82,9 @@ const useAuthStore = defineStore('auth', {
 
     async logout() {
       this.accessToken = null
-      localStorage.removeItem('access_token')
       this.userEmail = null
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('user_email')
       this.setAuthorizationHeader(null)
     },
   },
