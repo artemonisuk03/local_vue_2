@@ -70,9 +70,9 @@ const useAuthStore = defineStore('auth', {
       }
     },
 
-    async fetchUserEmail(token) {
+    async fetchUserEmail() {
       try {
-        const data = await authService.getEmail(token)
+        const data = await authService.getEmail()
         this.userEmail = data.email
       } catch (error) {
         console.error('Failed to fetch email:', error)
