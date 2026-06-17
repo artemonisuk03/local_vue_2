@@ -24,7 +24,7 @@
               <span class="logout_text">Выход</span>
             </div>
 
-            <span @click="router.push('/profile')" class="user_email">{{ userEmail }}</span>
+            <span @click="router.push(profileLink)" class="user_email">{{ userEmail }}</span>
           </template>
         </div>
       </div>
@@ -59,8 +59,14 @@
     <div v-if="isDesktop || isTablet" class="header_lower">
       <nav class="nav_desktop">
         <RouterLink to="/">Новости</RouterLink>
-        <RouterLink to="/tasks">Задания</RouterLink>
-        <RouterLink to="/profile" v-if="authStore.isAuthenticated">Профиль</RouterLink>
+        <RouterLink to="/tasks" v-if="authStore.role !== 'admin' && isAuthenticated"
+          >Задания</RouterLink
+        >
+        <template v-if="authStore.role === 'admin' && isAuthenticated">
+          <RouterLink to="/admin/tasks">Управление заданиями</RouterLink>
+          <RouterLink to="/admin/users">Пользователи</RouterLink>
+        </template>
+        <RouterLink :to="profileLink" v-if="isAuthenticated">Профиль</RouterLink>
       </nav>
     </div>
 
@@ -68,8 +74,14 @@
     <div v-if="isMobile" class="mobile_footer">
       <nav class="nav_mobile">
         <RouterLink to="/">Новости</RouterLink>
-        <RouterLink to="/tasks">Задания</RouterLink>
-        <RouterLink to="/profile" v-if="authStore.isAuthenticated">Профиль</RouterLink>
+        <RouterLink to="/tasks" v-if="authStore.role !== 'admin' && isAuthenticated"
+          >Задания</RouterLink
+        >
+        <RouterLink :to="profileLink" v-if="isAuthenticated">Профиль</RouterLink>
+        <template v-if="authStore.role === 'admin' && isAuthenticated">
+          <RouterLink to="/admin/tasks">Управление заданиями</RouterLink>
+          <RouterLink to="/admin/users">Пользователи</RouterLink>
+        </template>
       </nav>
     </div>
   </header>
@@ -87,6 +99,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const userEmail = computed(() => authStore.userEmail)
+const profileLink = computed(() => (authStore.role === 'admin' ? '/admin/profile' : '/profile'))
 
 const breakpoints = useBreakpoints({
   mobile: 0,
@@ -178,6 +191,7 @@ const logoutConfirmStyle = computed(() => ({
 }))
 
 function confirmLogout(): void {
+  router.push('/')
   authStore.logout()
   isLogoutConfirm.value = false
 }

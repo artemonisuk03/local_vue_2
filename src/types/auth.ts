@@ -10,3 +10,5 @@ export interface AuthToken {
 export interface EmailResponse {
   email: string
 }
+
+export type UserRole = 'admin' | 'member'

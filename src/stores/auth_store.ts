@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import authService from '@/services/api/auth_service.ts'
-import type { AuthCredentials, AuthToken } from '@/types/auth.ts'
+import type { AuthCredentials, AuthToken, UserRole } from '@/types/auth.ts'
 import axios from 'axios'
 
 const useAuthStore = defineStore('auth', {
@@ -8,6 +8,8 @@ const useAuthStore = defineStore('auth', {
     // refresh token lives in an httpOnly cookie (sent automatically via withCredentials), never in JS-accessible storage
     accessToken: localStorage.getItem('access_token') || null,
     userEmail: localStorage.getItem('user_email') || null,
+    // TODO: replace with role from API once roles exist on the backend
+    role: (localStorage.getItem('role') as UserRole) || 'member',
     loading: false,
     error: null,
   }),
@@ -83,9 +85,17 @@ const useAuthStore = defineStore('auth', {
     async logout() {
       this.accessToken = null
       this.userEmail = null
+      this.role = 'member'
       localStorage.removeItem('access_token')
       localStorage.removeItem('user_email')
+      localStorage.removeItem('role')
       this.setAuthorizationHeader(null)
+    },
+
+    // test-only role switch, triggered by clicking the role label in the profile
+    toggleRole() {
+      this.role = this.role === 'admin' ? 'member' : 'admin'
+      localStorage.setItem('role', this.role)
     },
   },
 })

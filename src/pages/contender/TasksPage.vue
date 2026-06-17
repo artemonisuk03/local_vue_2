@@ -9,14 +9,6 @@
         </div>
       </div>
 
-      <!-- stats -->
-      <!-- <div class="stats_row">
-        <div class="stat_card" v-for="stat in stats" :key="stat.label">
-          <div class="stat_value">{{ stat.value }}</div>
-          <div class="stat_label">{{ stat.label }}</div>
-        </div>
-      </div> -->
-
       <!-- main grid -->
       <div class="tasks_grid">
         <!-- left column -->
@@ -26,21 +18,24 @@
             <div class="card_header">
               <div>
                 <span class="card_title">Активные задания</span>
-                <p class="card_subtitle">Текущие задания с дедлайнами</p>
+                <p class="card_subtitle">Новые задания, доступные для выполнения</p>
               </div>
             </div>
-            <div v-if="activeAssignments.length" class="assignment_list">
-              <div v-for="item in activeAssignments" :key="item.id" class="assignment_item">
+            <div v-if="activeTasks.length" class="assignment_list">
+              <div v-for="item in activeTasks" :key="item.id" class="assignment_item">
                 <div class="assignment_main">
                   <div class="assignment_title">{{ item.title }}</div>
                 </div>
                 <div class="assignment_side">
                   <div class="deadline_label">Дедлайн</div>
                   <div class="deadline_date">{{ formatDate(item.deadline) }}</div>
+                  <div class="points_label">{{ item.points }} баллов</div>
                 </div>
               </div>
             </div>
             <div v-else class="empty_state">Активных заданий нет</div>
+            <!-- TODO: link to TasksList page once it exists -->
+            <button type="button" class="view_all_btn">Перейти ко всем доступным</button>
           </div>
 
           <!-- recent grades -->
@@ -51,18 +46,19 @@
                 <p class="card_subtitle">Недавно проверенные задания</p>
               </div>
             </div>
-            <div v-if="recentGrades.length" class="grades_list">
-              <div v-for="item in recentGrades" :key="item.id" class="grade_item">
+            <div v-if="recentCompleted.length" class="grades_list">
+              <div v-for="item in recentCompleted" :key="item.id" class="grade_item">
                 <div class="grade_main">
                   <div class="grade_title">{{ item.title }}</div>
                   <div class="grade_date">{{ formatDate(item.submitted_at!) }}</div>
                 </div>
-                <div class="grade_badge" :class="gradeColor(item.grade!)">
-                  {{ item.grade }}
-                </div>
+                <div class="points_badge">+{{ item.points }}</div>
               </div>
             </div>
             <div v-else class="empty_state">Оценок пока нет</div>
+            <button type="button" class="view_all_btn" @click="router.push('/profile')">
+              Все выполненные
+            </button>
           </div>
         </div>
 
@@ -95,42 +91,13 @@
                 <p class="card_subtitle">Работы на проверке</p>
               </div>
             </div>
-            <div v-if="pendingAssignments.length" class="pending_list">
-              <div v-for="item in pendingAssignments" :key="item.id" class="pending_item">
+            <div v-if="pendingTasks.length" class="pending_list">
+              <div v-for="item in pendingTasks" :key="item.id" class="pending_item">
                 <div class="pending_title">{{ item.title }}</div>
                 <span class="status_chip chip_submitted">Проверяется</span>
               </div>
             </div>
             <div v-else class="ok_state">Все работы проверены</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- add task (test) -->
-      <div class="card add_task_card">
-        <span class="card_title">Добавить задание</span>
-        <div class="add_task_row">
-          <div class="filter_field">
-            <label class="filter_label">Название</label>
-            <input v-model="newTask.title" class="filter_input" placeholder="Название задания..." />
-          </div>
-          <div class="filter_field">
-            <label class="filter_label">Дедлайн</label>
-            <input v-model="newTask.deadline" type="datetime-local" class="filter_input" />
-          </div>
-          <div class="filter_field add_task_grade">
-            <label class="filter_label">Баллы</label>
-            <input
-              v-model.number="newTask.grade"
-              type="number"
-              min="0"
-              max="100"
-              class="filter_input"
-              placeholder="0–100"
-            />
-          </div>
-          <div class="filter_actions">
-            <button class="filter_btn filter_btn_primary" @click="addTask">Добавить</button>
           </div>
         </div>
       </div>
@@ -154,7 +121,7 @@
             <label class="filter_label">Статус</label>
             <select v-model="statusFilter" class="filter_input">
               <option value="">Все статусы</option>
-              <option value="assigned">Назначено</option>
+              <option value="available">Доступно</option>
               <option value="submitted">Сдано</option>
               <option value="graded">Проверено</option>
             </select>
@@ -226,38 +193,15 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useTasksStore } from '@/stores/tasks_store.ts'
 
 defineOptions({ name: 'TasksPage' })
 
-interface Task {
-  id: number
-  title: string
-  deadline: string
-  status: 'assigned' | 'submitted' | 'graded'
-  grade?: number
-  submitted_at?: string
-}
+const router = useRouter()
+const tasksStore = useTasksStore()
 
-const tasks = ref<Task[]>([])
-
-const newTask = reactive({ title: '', deadline: '', grade: null as number | null })
-
-let nextId = 1
-
-function addTask(): void {
-  if (!newTask.title || !newTask.deadline) return
-  tasks.value.push({
-    id: nextId++,
-    title: newTask.title,
-    deadline: newTask.deadline,
-    status: newTask.grade !== null ? 'graded' : 'assigned',
-    grade: newTask.grade ?? undefined,
-    submitted_at: newTask.grade !== null ? new Date().toISOString() : undefined,
-  })
-  newTask.title = ''
-  newTask.deadline = ''
-  newTask.grade = null
-}
+const newTask = reactive({ title: '', deadline: '', points: 0 })
 
 const searchQuery = ref('')
 const deadlineBefore = ref('')
@@ -276,7 +220,7 @@ function formatDate(str: string): string {
 }
 
 const filteredTasks = computed(() =>
-  tasks.value.filter((t) => {
+  tasksStore.tasks.filter((t) => {
     if (searchQuery.value && !t.title.toLowerCase().includes(searchQuery.value.toLowerCase()))
       return false
     if (statusFilter.value && t.status !== statusFilter.value) return false
@@ -293,33 +237,20 @@ const paginatedTasks = computed(() => {
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredTasks.value.length / PAGE_SIZE)))
 
-const activeAssignments = computed(() => tasks.value.filter((t) => t.status === 'assigned'))
-const recentGrades = computed(() =>
-  tasks.value
-    .filter((t) => t.status === 'graded')
-    .slice(-5)
-    .reverse(),
-)
-const pendingAssignments = computed(() => tasks.value.filter((t) => t.status === 'submitted'))
+const activeTasks = computed(() => tasksStore.availableTasks.slice(0, 4))
+const pendingTasks = computed(() => tasksStore.pendingTasks)
 
-const totalCount = computed(() => tasks.value.length)
-const completedCount = computed(() => tasks.value.filter((t) => t.status === 'graded').length)
+const recentCompleted = computed(() =>
+  [...tasksStore.completedTasks]
+    .sort((a, b) => new Date(b.submitted_at!).getTime() - new Date(a.submitted_at!).getTime())
+    .slice(0, 3),
+)
+
+const totalCount = computed(() => tasksStore.tasks.length)
+const completedCount = computed(() => tasksStore.completedTasks.length)
 const progress = computed(() =>
   totalCount.value ? Math.round((completedCount.value / totalCount.value) * 100) : 0,
 )
-
-const stats = computed(() => [
-  { label: 'Всего заданий', value: totalCount.value },
-  { label: 'Активных', value: activeAssignments.value.length },
-  { label: 'Ожидают проверки', value: pendingAssignments.value.length },
-  { label: 'Выполнено', value: completedCount.value },
-])
-
-function gradeColor(grade: number): string {
-  if (grade >= 80) return 'grade_success'
-  if (grade >= 50) return 'grade_warning'
-  return 'grade_danger'
-}
 
 function statusChip(status: string): string {
   if (status === 'graded') return 'chip_graded'
@@ -330,7 +261,7 @@ function statusChip(status: string): string {
 function statusLabel(status: string): string {
   if (status === 'graded') return 'Проверено'
   if (status === 'submitted') return 'Сдано'
-  return 'Назначено'
+  return 'Доступно'
 }
 
 function applyFilters(): void {
@@ -396,37 +327,6 @@ main {
   font-size: 14px;
   color: rgb(150, 150, 150);
   margin: 0;
-}
-
-/* stats */
-
-.stats_row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.stat_card {
-  background-color: white;
-  border-radius: 16px;
-  box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
-  padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.stat_value {
-  font-family: Nagel;
-  font-size: 2rem;
-  color: rgb(65, 65, 65);
-  line-height: 1;
-}
-
-.stat_label {
-  font-family: Nagel;
-  font-size: 13px;
-  color: rgb(150, 150, 150);
 }
 
 /* main grid */
@@ -523,6 +423,34 @@ main {
   color: rgb(204, 63, 75);
 }
 
+.points_label {
+  font-family: Nagel;
+  font-size: 12px;
+  color: rgb(160, 125, 180);
+  margin-top: 2px;
+}
+
+/* view all button */
+
+.view_all_btn {
+  appearance: none;
+  width: 100%;
+  margin-top: 16px;
+  border: thin solid rgb(210, 208, 220);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: Nagel;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: white;
+  color: rgb(65, 65, 65);
+  transition: 0.2s background-color;
+}
+
+.view_all_btn:hover {
+  background-color: rgb(244, 243, 250);
+}
+
 /* grades */
 
 .grades_list {
@@ -558,27 +486,14 @@ main {
   color: rgb(150, 150, 150);
 }
 
-.grade_badge {
-  width: 44px;
-  height: 44px;
+.points_badge {
+  padding: 8px 14px;
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background-color: rgb(160, 125, 180);
   font-family: Nagel;
-  font-size: 18px;
+  font-size: 16px;
   color: white;
   flex-shrink: 0;
-}
-
-.grade_success {
-  background-color: rgb(22, 163, 74);
-}
-.grade_warning {
-  background-color: rgb(202, 138, 4);
-}
-.grade_danger {
-  background-color: rgb(204, 63, 75);
 }
 
 /* progress */
@@ -694,26 +609,6 @@ main {
 .chip_graded {
   background-color: rgba(22, 163, 74, 0.12);
   color: rgb(22, 163, 74);
-}
-
-/* add task */
-
-.add_task_card {
-  padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.add_task_row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.add_task_grade {
-  max-width: 120px;
 }
 
 /* filters */
@@ -895,19 +790,11 @@ main {
   .tasks_grid {
     grid-template-columns: 1fr;
   }
-
-  .stats_row {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 @media screen and (max-width: 540px) {
   .main_contents {
     padding-top: 70px;
-  }
-
-  .stats_row {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .filters_row {
