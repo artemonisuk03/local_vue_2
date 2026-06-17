@@ -6,6 +6,31 @@
         <div class="avatar">{{ avatarLetter }}</div>
         <div class="profile_info">
           <span class="profile_email">{{ userEmail }}</span>
+          <span class="profile_role">{{ profileRole }}</span>
+        </div>
+
+        <div
+          class="settings_trigger"
+          @mouseenter="isSettingsMenuOpen = true"
+          @mouseleave="isSettingsMenuOpen = false"
+        >
+          <transition name="fade" mode="out-in">
+            <span v-if="!isSettingsMenuOpen" class="settings_label">Настройки аккаунта</span>
+            <div v-else class="settings_menu">
+              <RouterLink to="/settings?section=email" class="settings_menu_item">
+                <PenIcon class="settings_menu_icon" />
+                <span>Сменить почту</span>
+              </RouterLink>
+              <RouterLink to="/settings?section=password" class="settings_menu_item">
+                <LockIcon class="settings_menu_icon" />
+                <span>Сменить пароль</span>
+              </RouterLink>
+            </div>
+          </transition>
+
+          <RouterLink to="/settings" class="gear_link">
+            <GearIcon class="gear_icon" :class="{ rotated: isSettingsMenuOpen }" />
+          </RouterLink>
         </div>
       </div>
 
@@ -53,10 +78,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth_store.ts'
+import GearIcon from '@/assets/icons/gear.svg'
+import PenIcon from '@/assets/icons/pen.svg'
+import LockIcon from '@/assets/icons/lock.svg'
 
 defineOptions({ name: 'ProfilePage' })
 
 const authStore = useAuthStore()
+
+const isSettingsMenuOpen = ref(false)
+
+// TODO: update to fetch from API
+const profileRole = ref('Студент')
 
 const userEmail = computed(function () {
   return authStore.userEmail ?? ''
@@ -74,16 +107,16 @@ interface Task {
 }
 
 const completedTasks = ref<Task[]>([
-  { id: 1, title: 'Лабораторная работа №1', submitted_at: '2024-02-15T10:00:00', grade: 95 },
-  { id: 2, title: 'Эссе по теории управления', submitted_at: '2024-02-22T14:30:00', grade: 78 },
+  { id: 1, title: 'Мероприятие 1', submitted_at: '2024-02-15T10:00:00', grade: 95 },
+  { id: 2, title: 'Мероприятие 2', submitted_at: '2024-02-22T14:30:00', grade: 78 },
   {
     id: 3,
-    title: 'Практическое задание — модуль 2',
+    title: 'Практическое задание',
     submitted_at: '2024-03-05T09:15:00',
     grade: 88,
   },
-  { id: 4, title: 'Контрольная работа №1', submitted_at: '2024-03-18T11:00:00', grade: 42 },
-  { id: 5, title: 'Реферат по экономике', submitted_at: '2024-04-01T16:00:00', grade: 91 },
+  { id: 4, title: 'Выступление', submitted_at: '2024-03-18T11:00:00', grade: 42 },
+  { id: 5, title: 'Проведение мероприятия', submitted_at: '2024-04-01T16:00:00', grade: 91 },
 ])
 
 const totalPoints = computed(function () {
@@ -144,6 +177,7 @@ main {
 /* hero */
 
 .profile_hero {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 20px;
@@ -180,6 +214,90 @@ main {
   font-family: Nagel;
   font-size: 13px;
   color: rgb(150, 150, 150);
+}
+
+/* settings trigger */
+
+.settings_trigger {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings_label {
+  font-family: Nagel;
+  font-size: 14px;
+  color: rgb(65, 65, 65);
+  white-space: nowrap;
+  text-decoration: underline;
+}
+
+.gear_link {
+  display: flex;
+  cursor: pointer;
+}
+
+.gear_icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  color: rgb(160, 125, 180);
+  transition:
+    transform 0.25s ease,
+    color 0.15s;
+}
+
+.gear_link:hover .gear_icon {
+  color: rgb(140, 105, 160);
+}
+
+.gear_icon.rotated {
+  transform: rotate(90deg);
+}
+
+.settings_menu {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 48px;
+}
+
+.settings_menu_item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: Nagel;
+  font-size: 13px;
+  color: rgb(65, 65, 65);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.settings_menu_item:hover {
+  color: rgb(160, 125, 180);
+}
+
+.settings_menu_icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: rgb(160, 125, 180);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateX(8px);
 }
 
 /* stats */

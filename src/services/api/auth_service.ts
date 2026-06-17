@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { AuthCredentials, AuthToken, EmailResponse } from '@/types/auth.ts'
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:8000',
@@ -7,12 +8,10 @@ const apiClient = axios.create({
 
 class AuthService {
   // register
-  async register(email: string, password: string) {
+  async register({ email, password }: AuthCredentials): Promise<AuthToken> {
     try {
-      const response = await apiClient.post('api/auth/register', {
-        email,
-        password,
-      })
+      const credentials: AuthCredentials = { email, password }
+      const response = await apiClient.post<AuthToken>('api/auth/register', credentials)
 
       return response.data
     } catch (error: any) {
@@ -29,12 +28,10 @@ class AuthService {
   }
 
   // login
-  async login(email: string, password: string) {
+  async login({ email, password }: AuthCredentials): Promise<AuthToken> {
     try {
-      const response = await apiClient.post('api/auth/login', {
-        email,
-        password,
-      })
+      const credentials: AuthCredentials = { email, password }
+      const response = await apiClient.post<AuthToken>('api/auth/login', credentials)
 
       return response.data
     } catch (error: any) {
@@ -50,15 +47,15 @@ class AuthService {
     }
   }
 
-  async refresh() {
-    const response = await apiClient.post('/api/auth/refresh')
+  async refresh(): Promise<AuthToken> {
+    const response = await apiClient.post<AuthToken>('/api/auth/refresh')
     return response.data
   }
 
-  async getEmail() {
+  async getEmail(): Promise<EmailResponse> {
     try {
       const token = localStorage.getItem('access_token')
-      const response = await apiClient.get('/api/auth/email', {
+      const response = await apiClient.get<EmailResponse>('/api/auth/email', {
         params: {
           access_token: token,
         },

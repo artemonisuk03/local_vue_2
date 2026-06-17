@@ -63,17 +63,23 @@ interface LeaderboardEntry {
   points: number
 }
 
-// TODO: заменить на запрос к API
+// TODO: replace with API call
 const slides = ref<Slide[]>([
-  { id: 1, image: beachImg,     title: 'А вы были в Майами? Майами Майами Майами Майами Майами Майами Майами Майами Майами Майами Майами а вот я был в майами' },
-  { id: 2, image: starfishImg,  title: 'Вы готовы дети? Да капитан Я не слышу Так точно капитан' },
+  {
+    id: 1,
+    image: beachImg,
+    title:
+      'А вы были в Майами? Майами Майами Майами Майами Майами Майами Майами Майами Майами Майами Майами а вот я был в майами',
+  },
+  { id: 2, image: starfishImg, title: 'Вы готовы дети? Да капитан Я не слышу Так точно капитан' },
 ])
 
-// TODO: заменить на запрос к API
+// TODO: replace with API call
 const leaderboard = ref<LeaderboardEntry[]>([
-  { rank: 1, name: 'Денис королев',       points: 1240 },
-  { rank: 2, name: 'endermend1',           points: 1105 },
-  { rank: 3, name: 'Упростил по жести',   points: 980  },
+  { rank: 1, name: 'Денис королев', points: 1240 },
+  { rank: 2, name: 'endermend1', points: 1105 },
+  { rank: 3, name: 'Упростил по жести', points: 980 },
+  { rank: 4, name: 'Новый чомпион', points: 500 },
 ])
 </script>
 
@@ -255,7 +261,11 @@ main {
   }
 
   .banners {
-    height: 300px;
+    height: 500px;
+  }
+
+  .slide_caption_title {
+    font-size: 4vw;
   }
 }
 </style>

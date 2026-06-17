@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import authService from '@/services/api/auth_service.ts'
+import type { AuthCredentials, AuthToken } from '@/types/auth.ts'
 import axios from 'axios'
 
 const useAuthStore = defineStore('auth', {
   state: () => ({
+    // refresh token lives in an httpOnly cookie (sent automatically via withCredentials), never in JS-accessible storage
     accessToken: localStorage.getItem('access_token') || null,
-    refreshToken: localStorage.getItem('refresh_token') || null,
     userEmail: localStorage.getItem('user_email') || null,
     loading: false,
     error: null,
@@ -17,13 +18,13 @@ const useAuthStore = defineStore('auth', {
 
   actions: {
     // register
-    async register(email: string, password: string) {
+    async register({ email, password }: AuthCredentials) {
       this.loading = true
       this.error = null
 
       try {
-        const tokens = await authService.register(email, password)
-        this.setAccessToken(tokens.access_token, tokens.refresh_token)
+        const tokens = await authService.register({ email, password })
+        this.setAccessToken(tokens)
         return { success: true, tokens }
       } catch (error: any) {
         this.error = error.message
@@ -34,13 +35,13 @@ const useAuthStore = defineStore('auth', {
     },
 
     // login
-    async login(email: string, password: string) {
+    async login({ email, password }: AuthCredentials) {
       this.loading = true
       this.error = null
 
       try {
-        const tokens = await authService.login(email, password)
-        this.setAccessToken(tokens.access_token, tokens.refresh_token)
+        const tokens = await authService.login({ email, password })
+        this.setAccessToken(tokens)
 
         await this.fetchUserEmail()
 
@@ -53,16 +54,15 @@ const useAuthStore = defineStore('auth', {
       }
     },
 
-    // save tokens to localStorage
-    setAccessToken(accessToken: string, refreshToken: string) {
-      this.accessToken = accessToken
-      this.refreshToken = refreshToken
+    // save access token to localStorage
+    setAccessToken(tokens: AuthToken) {
+      this.accessToken = tokens.access_token
 
-      localStorage.setItem('access_token', accessToken)
-      this.setAuthorizationHeader(accessToken)
+      localStorage.setItem('access_token', tokens.access_token)
+      this.setAuthorizationHeader(tokens.access_token)
     },
 
-    setAuthorizationHeader(token) {
+    setAuthorizationHeader(token: string | null) {
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       } else {

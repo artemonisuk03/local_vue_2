@@ -47,7 +47,7 @@
           <div class="card">
             <div class="card_header">
               <div>
-                <span class="card_title">Последние оценки</span>
+                <span class="card_title">Последние выставленные баллы</span>
                 <p class="card_subtitle">Недавно проверенные задания</p>
               </div>
             </div>
@@ -102,6 +102,35 @@
               </div>
             </div>
             <div v-else class="ok_state">Все работы проверены</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- add task (test) -->
+      <div class="card add_task_card">
+        <span class="card_title">Добавить задание</span>
+        <div class="add_task_row">
+          <div class="filter_field">
+            <label class="filter_label">Название</label>
+            <input v-model="newTask.title" class="filter_input" placeholder="Название задания..." />
+          </div>
+          <div class="filter_field">
+            <label class="filter_label">Дедлайн</label>
+            <input v-model="newTask.deadline" type="datetime-local" class="filter_input" />
+          </div>
+          <div class="filter_field add_task_grade">
+            <label class="filter_label">Баллы</label>
+            <input
+              v-model.number="newTask.grade"
+              type="number"
+              min="0"
+              max="100"
+              class="filter_input"
+              placeholder="0–100"
+            />
+          </div>
+          <div class="filter_actions">
+            <button class="filter_btn filter_btn_primary" @click="addTask">Добавить</button>
           </div>
         </div>
       </div>
@@ -196,7 +225,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 
 defineOptions({ name: 'TasksPage' })
 
@@ -210,6 +239,25 @@ interface Task {
 }
 
 const tasks = ref<Task[]>([])
+
+const newTask = reactive({ title: '', deadline: '', grade: null as number | null })
+
+let nextId = 1
+
+function addTask(): void {
+  if (!newTask.title || !newTask.deadline) return
+  tasks.value.push({
+    id: nextId++,
+    title: newTask.title,
+    deadline: newTask.deadline,
+    status: newTask.grade !== null ? 'graded' : 'assigned',
+    grade: newTask.grade ?? undefined,
+    submitted_at: newTask.grade !== null ? new Date().toISOString() : undefined,
+  })
+  newTask.title = ''
+  newTask.deadline = ''
+  newTask.grade = null
+}
 
 const searchQuery = ref('')
 const deadlineBefore = ref('')
@@ -290,11 +338,11 @@ function applyFilters(): void {
 }
 
 function clearFilters(): void {
-  searchQuery.value    = ''
+  searchQuery.value = ''
   deadlineBefore.value = ''
-  deadlineAfter.value  = ''
-  statusFilter.value   = ''
-  currentPage.value    = 1
+  deadlineAfter.value = ''
+  statusFilter.value = ''
+  currentPage.value = 1
 }
 
 function changePage(page: number): void {
@@ -646,6 +694,26 @@ main {
 .chip_graded {
   background-color: rgba(22, 163, 74, 0.12);
   color: rgb(22, 163, 74);
+}
+
+/* add task */
+
+.add_task_card {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.add_task_row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.add_task_grade {
+  max-width: 120px;
 }
 
 /* filters */

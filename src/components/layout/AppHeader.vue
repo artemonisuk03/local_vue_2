@@ -4,44 +4,20 @@
     <div class="header_upper">
       <div class="header_upper_contents">
         <RouterLink to="/" class="logo_main">
-          <img src="@/assets/img_mainlogo.png" />
-          <span>web-suffer-back</span>
+          <img src="@/assets/images/mainlogo.png" />
+          <span>web-suffer-front</span>
         </RouterLink>
 
         <div class="account_main">
           <template v-if="!isAuthenticated">
             <div @click="router.push('/login')">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
-                />
-              </svg>
+              <PersonIcon />
             </div>
           </template>
 
           <template v-else>
             <div ref="bellIconRef" @click="toggleNotifications">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
-                />
-              </svg>
+              <BellIcon />
             </div>
 
             <div ref="logoutBtnRef" @click="toggleLogoutConfirm">
@@ -84,7 +60,7 @@
       <nav class="nav_desktop">
         <RouterLink to="/">Новости</RouterLink>
         <RouterLink to="/tasks">Задания</RouterLink>
-        <RouterLink to="/profile">Профиль</RouterLink>
+        <RouterLink to="/profile" v-if="authStore.isAuthenticated">Профиль</RouterLink>
       </nav>
     </div>
 
@@ -93,7 +69,7 @@
       <nav class="nav_mobile">
         <RouterLink to="/">Новости</RouterLink>
         <RouterLink to="/tasks">Задания</RouterLink>
-        <RouterLink to="/profile">Профиль</RouterLink>
+        <RouterLink to="/profile" v-if="authStore.isAuthenticated">Профиль</RouterLink>
       </nav>
     </div>
   </header>
@@ -104,6 +80,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth_store.ts'
 import { useBreakpoints } from '@vueuse/core'
+import PersonIcon from '@/assets/icons/person.svg'
+import BellIcon from '@/assets/icons/bell.svg'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -142,16 +120,30 @@ function handleClickOutside(event: MouseEvent): void {
 onMounted(() => document.addEventListener('click', handleClickOutside))
 onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
+// --- panel positioning ---
+
+const VIEWPORT_MARGIN = 8
+
+// keep in sync with the panel's CSS width
+function clampPanelLeft(left: number, panelWidth: number): number {
+  const maxLeft = window.innerWidth - panelWidth - VIEWPORT_MARGIN
+  return Math.min(Math.max(left, VIEWPORT_MARGIN), maxLeft)
+}
+
 // --- notifications ---
 
 const bellIconRef = ref<HTMLDivElement | null>(null)
 const isNotificationsOpen = ref(false)
 const bellCoords = ref({ top: 0, left: 0 })
 const notifications = ref<Array<{ id: number; message: string }>>([])
+const NOTIFICATIONS_PANEL_WIDTH = 250
 
 function toggleNotifications(): void {
   const rect = bellIconRef.value!.getBoundingClientRect()
-  bellCoords.value = { top: rect.bottom + window.scrollY + 5, left: rect.left + window.scrollX - 4 }
+  bellCoords.value = {
+    top: rect.bottom + 5,
+    left: clampPanelLeft(rect.left - 4, NOTIFICATIONS_PANEL_WIDTH),
+  }
   isNotificationsOpen.value = !isNotificationsOpen.value
   isLogoutConfirm.value = false
 }
@@ -167,12 +159,13 @@ const notificationsPanelStyle = computed(() => ({
 const logoutBtnRef = ref<HTMLDivElement | null>(null)
 const isLogoutConfirm = ref(false)
 const logoutCoords = ref({ top: 0, left: 0 })
+const LOGOUT_CONFIRM_PANEL_WIDTH = 180
 
 function toggleLogoutConfirm(): void {
   const rect = logoutBtnRef.value!.getBoundingClientRect()
   logoutCoords.value = {
-    top: rect.bottom + window.scrollY + 5,
-    left: rect.left + window.scrollX - 4,
+    top: rect.bottom + 5,
+    left: clampPanelLeft(rect.left - 4, LOGOUT_CONFIRM_PANEL_WIDTH),
   }
   isLogoutConfirm.value = !isLogoutConfirm.value
   isNotificationsOpen.value = false
@@ -208,7 +201,7 @@ header {
   flex-direction: column;
   align-items: stretch;
   background-color: white;
-  box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
+  box-shadow: 0px 0px 15px 0px rgb(0, 0, 0, 0.2);
 }
 
 .logout_confirm_text {
@@ -247,12 +240,13 @@ header {
   display: flex;
   flex-direction: column;
   background-color: white;
-  box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
+  box-shadow: 0px 0px 15px 0px rgb(0, 0, 0, 0.2);
   border-radius: 8px;
   overflow: hidden;
 }
 
 .notifications_empty {
+  user-select: none;
   padding: 20px 16px;
   font-family: Nagel;
   color: rgb(150, 150, 150);
@@ -260,6 +254,7 @@ header {
 }
 
 .notification_item {
+  user-select: none;
   padding: 12px 16px;
   font-family: Nagel;
   border-bottom: thin solid rgb(230, 230, 230);
@@ -325,9 +320,11 @@ header {
   width: 100%;
   height: 100%;
   cursor: pointer;
+  min-width: 32px;
 }
 
 .logout_text {
+  user-select: none;
   color: black;
   font-family: Nagel;
   font-size: 16px;
@@ -341,6 +338,7 @@ header {
 }
 
 .user_email {
+  user-select: none;
   color: white;
   font-size: 20px;
   font-family: Nagel;
@@ -358,7 +356,7 @@ header {
   display: flex;
   justify-content: center;
   background-color: rgb(255, 255, 255);
-  box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
+  box-shadow: 0px 0px 15px 0px rgb(0, 0, 0, 0.2);
 }
 
 .nav_desktop {
@@ -368,6 +366,7 @@ header {
 }
 
 .nav_desktop a {
+  user-select: none;
   height: 32px;
   font-size: 20px;
   margin-inline: 10px;
@@ -395,7 +394,7 @@ header {
   display: flex;
   justify-content: center;
   background-color: rgb(255, 255, 255);
-  box-shadow: 0px 0px 15px 0px rgb(211, 211, 211);
+  box-shadow: 0px 0px 15px 0px rgb(0, 0, 0, 0.2);
 }
 
 .nav_mobile {
@@ -425,6 +424,20 @@ header {
 @media screen and (max-width: 1050px) and (min-width: 540px) {
   .header_upper_contents {
     width: 100%;
+  }
+}
+
+@media screen and (max-width: 540px) {
+  .header_upper {
+    box-shadow: 0px 0px 15px 0px rgb(0, 0, 0, 0.2);
+  }
+
+  .logo_main span {
+    font-size: 4vw;
+  }
+
+  .user_email {
+    font-size: 4vw;
   }
 }
 </style>
